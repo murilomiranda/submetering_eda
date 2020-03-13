@@ -1,0 +1,27 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1583849593571.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "88DB9130",
+    "lastKnownWriteTime" : 1584114357,
+    "last_content_update" : 1584114357289,
+    "path" : "~/ubiqum/x3IoT/submetering/script_eda.Rmd",
+    "project_path" : "script_eda.Rmd",
+    "properties" : {
+        "cursorPosition" : "87,3",
+        "last_setup_crc32" : "AC18C62Bbb338d19",
+        "scrollLine" : "79",
+        "tempName" : "Untitled1"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}
