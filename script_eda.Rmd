@@ -12,6 +12,11 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r, warning=FALSE}
 library(RMySQL)
 library(tidyverse)
+library(ggthemes)
+library(ggridges)
+library(ggExtra)
+library(viridis) # colour blind friendly palette, works in B&W also
+library(lubridate)
 library(zoo)
 ```
 
@@ -84,32 +89,163 @@ str(submeter_data)
 
 ```{r}
 # verify missing values
-head(submeter_data[which(is.na(submeter_data$DateTime)),])
+anyNA(submeter_data)
 ```
 
-There are four blocks of missing values: (1) 119637 - 119696, (2) 649945 - 650004, (3) 1173908 - 1173967 and (4) 1688695 - 1688754. They correspond to Daylight savings time (DST): (1) 2007-03-25 from 2:00:00 until 2:59:00, (2) 2008-03-30 from 2:00:00 until 2:59:00, (3) 
-2009-03-29 from 2:00:00 until 2:59:00 and (4) 2010-03-28 from 2:00:00 until 2:59:00. These missing values were omit/remove.
+<!-- Now we verify if there is data which was not added into the database. For this reason, we make a vector (called *date_Time*) from `min(submeter_data$DateTime)` to ```max(submeter_data$DateTime)` by minute. After that, we merge the *submeter_data* database with *date_Time* vector. If there is any missing value, it will be imputed by interpolation. -->
 
+<!-- ```{r} -->
+<!-- date_Time <- seq(min(submeter_data$datetime), max(submeter_data$datetime), "min") -->
+
+<!-- ## -->
+<!-- submeter_data <- submeter_data %>%  -->
+<!--   full_join(as.data.frame(date_Time), by = c("datetime" = "date_Time")) %>% -->
+<!--   arrange(datetime) -->
+
+<!-- submeter_data %>% ggplot(aes(datetime, Sub_metering_1)) + geom_line() -->
+<!-- ``` -->
+
+#### Yearly
 ```{r}
-# check the previous and next times
-submeter_data[c(119636:119637, 119696:119697), ]
+yearly <- submeter_data %>% group_by(year = year(datetime)) %>%  
+  summarize(sum_sub1 = sum(Sub_metering_1), sum_sub2 = sum(Sub_metering_2), sum_sub3 = sum(Sub_metering_3)) 
+
+yearly %>% 
+  pivot_longer(-year, names_to = "Sub_metering", values_to = "Watt_hour") %>%
+  ggplot(aes(year, Watt_hour/1e6, fill = Sub_metering)) +
+  geom_bar(stat = "identity", position = 'dodge', colour="black") +
+  labs(
+    x = "", 
+    y = "Watt-hour of active energy (in Million)"
+  ) + 
+  scale_fill_discrete(
+    name = "Sub-metering", 
+    labels = c("Kitchen", "Laundry", "Heater")
+  )
+
+yearly %>% 
+  pivot_longer(-year, names_to = "Sub_metering", values_to = "Watt_hour") %>%
+  ggplot(aes(year, Watt_hour/1e6, fill = Sub_metering)) +
+  geom_bar(stat = "identity", position = 'fill', colour="black") +
+  labs(
+    x = "", 
+    y = "Watt-hour of active energy (in Percentage)"
+  ) + 
+  scale_fill_discrete(
+    name = "Sub-metering", 
+    labels = c("Kitchen", "Laundry", "Heater")
+  )
 ```
 
-We remove the missing DateTime values using the code below:
-
+#### Monthy
 ```{r}
-submeter_data <- submeter_data %>% filter(!is.na(DateTime))
+monthly <- submeter_data %>% group_by(month = month(datetime, label = TRUE)) %>%  
+  summarize(sum_sub1 = sum(Sub_metering_1), sum_sub2 = sum(Sub_metering_2), sum_sub3 = sum(Sub_metering_3)) 
+
+monthly %>% 
+  pivot_longer(-month, names_to = "Sub_metering", values_to = "Watt_hour") %>%
+  ggplot(aes(month, Watt_hour/1e6, fill = Sub_metering)) +
+  geom_bar(stat = "identity", position = 'dodge', colour="black") +
+  labs(
+    x = "", 
+    y = "Watt-hour of active energy (in Million)"
+  ) + 
+  scale_fill_discrete(
+    name = "Sub-metering", 
+    labels = c("Kitchen", "Laundry", "Heater")
+  )
+
+monthly %>% 
+  pivot_longer(-month, names_to = "Sub_metering", values_to = "Watt_hour") %>%
+  ggplot(aes(month, Watt_hour/1e6, fill = Sub_metering)) +
+  geom_bar(stat = "identity", position = 'fill', colour="black") +
+  labs(
+    x = "", 
+    y = "Watt-hour of active energy (in Percentage)"
+  ) + 
+  scale_fill_discrete(
+    name = "Sub-metering", 
+    labels = c("Kitchen", "Laundry", "Heater")
+  )
 ```
 
-Now we verify if there is data which was not added into the database. For this reason, we make a vector (called *date_Time*) from `min(submeter_data$DateTime)` to ```max(submeter_data$DateTime)` by minute. After that, we merge the *submeter_data* database with *date_Time* vector. If there is any missing value, it will be imputed by interpolation.
 
+#### Daily
 ```{r}
-date_Time <- seq(min(submeter_data$DateTime), max(submeter_data$DateTime), "min")
+daily <- submeter_data %>% 
+  mutate(
+    year = year(datetime),
+    yday = yday(datetime),
+    month = month(datetime, label = TRUE)
+  ) %>% 
+  group_by(year, month, yday) %>%  
+  summarize(sum_sub1 = sum(Sub_metering_1), sum_sub2 = sum(Sub_metering_2), sum_sub3 = sum(Sub_metering_3)) 
 
-##
-submeter_data <- submeter_data %>% 
-  full_join(as.data.frame(date_Time), by = c("DateTime" = "date_Time"))
 
-submeter_data %>% ggplot(aes(DateTime, Sub_metering_1)) + geom_line()
+# Examine distribution of sum_sub by month
+ggplot(daily, aes(x = sum_sub1, y = month, height = ..density..)) +
+  geom_density_ridges(stat = "density") 
+ggplot(daily, aes(x = sum_sub2, y = month, height = ..density..)) +
+  geom_density_ridges(stat = "density")
+ggplot(daily, aes(x = sum_sub3, y = month, height = ..density..)) +
+  geom_density_ridges(stat = "density")
+
+# Examine distribution of sum_sub by month and year
+ggplot(daily, aes(x = sum_sub1, y = month, height = ..density..)) +
+  geom_density_ridges(stat = "density") + facet_wrap(vars(year))
+ggplot(daily, aes(x = sum_sub2, y = month, height = ..density..)) +
+  geom_density_ridges(stat = "density") + facet_wrap(vars(year))
+ggplot(daily, aes(x = sum_sub3, y = month, height = ..density..)) +
+  geom_density_ridges(stat = "density") + facet_wrap(vars(year))
+```
+
+#### Hourly
+```{r}
+hourly <- submeter_data %>% 
+  group_by(year = year(datetime),
+           month = month(datetime, label = TRUE),
+           day = day(datetime),
+           hour = hour(datetime)) %>%  
+  summarize(sum_sub1 = sum(Sub_metering_1), sum_sub2 = sum(Sub_metering_2), sum_sub3 = sum(Sub_metering_3))
+ 
+
+######## Plotting starts here#####################
+heatmap_sub <- function(data, fill_data = "sum_sub1"){
+  if(fill_data == "sum_sub1"){
+    title_text <- "In Kitchen"
+  }else if(fill_data == "sum_sub2"){
+    title_text <- "In Laundry Room"
+  }else{
+    title_text <- "Water-heater and Air-conditioner"
+  }
+  
+  data %>% 
+  ggplot(aes_string("day", "hour", fill = fill_data)) +
+  geom_tile(color = "white", size = 0.1) + 
+  scale_fill_viridis(name = "Sum of Hourly Watt", option = "C") +
+  facet_grid(year ~ month) + 
+  scale_y_continuous(trans = "reverse", breaks = unique(data$hour)) +
+  scale_x_continuous(breaks = c(1, 10, 20, 31)) + 
+  theme_minimal(base_size = 8) + 
+  labs(
+    title = title_text,
+    x = "Day", 
+    y = "Hour Commencing"
+  ) + 
+  theme(legend.position = "bottom",
+        plot.title = element_text(size = 14, hjust = 0),
+        axis.text.y = element_text(size = 6),
+        strip.background = element_rect(colour = "white"),
+        axis.ticks = element_blank(),
+        axis.text = element_text(size = 7),
+        legend.title = element_text(size = 8),
+        legend.text = element_text(size = 6)
+  ) +
+  removeGrid()
+}
+
+heatmap_sub(hourly)
+heatmap_sub(hourly, "sum_sub2")
+heatmap_sub(hourly, "sum_sub3")
 ```
 

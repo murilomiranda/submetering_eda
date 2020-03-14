@@ -1,7 +1,0 @@
-Now we verify if there is data which was not added into the database. For this reason, we use a sequencial datetime data from min(DateTime) (`min(submeter_data$DateTime)`) to max(DateTime) (`max(submeter_data$DateTime)`) by minute. After that, we complete the *submeter_data* database with *DateTime* sequence. If there is any missing value, it will be imputed by interpolation.
-
-```{r}
-submeter_data <- submeter_data %>% 
-  complete(DateTime = seq.POSIXt(min(DateTime), max(DateTime), by = "min"), 
-           Sub_metering_1, Sub_metering_2, Sub_metering_3)
-```

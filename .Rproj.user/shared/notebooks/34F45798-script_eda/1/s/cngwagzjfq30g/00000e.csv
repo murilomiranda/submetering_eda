@@ -1,6 +1,0 @@
-"0","submeter_data <- submeter_data %>% 
-  complete(DateTime = seq.POSIXt(min(DateTime), max(DateTime), by = ""min""), 
-           Sub_metering_1, Sub_metering_2, Sub_metering_3)
-"
-"2","Error: cannot allocate vector of size 1744.7 Gb
-"
